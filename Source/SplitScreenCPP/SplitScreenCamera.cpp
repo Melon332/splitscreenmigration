@@ -148,7 +148,7 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 	FVector CapturePointA = UKismetMathLibrary::Normal(AverageLocationA);
 	FVector CapturePointB = UKismetMathLibrary::Normal(AverageLocationB);
 	float Dot = UKismetMathLibrary::Dot_VectorVector(CapturePointA, CapturePointB);
-	float SpreadCameraAngleCorrection = Dot;
+	float SpreadCameraAngleCorrection = UKismetMathLibrary::Divide_DoubleDouble(Dot);
 
 	for (int i = 0; i < Players.Num(); i++)
 	{
