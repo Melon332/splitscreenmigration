@@ -48,7 +48,7 @@ public:
 
 	/** Applies interpolation and step rotation to the split angle */
 	UFUNCTION(BlueprintCallable)
-	float UpdateSplitAngle(float Angle, float DeltaTime, float& _SplitAngle);
+	float UpdateSplitAngle(float Angle, float DeltaTime);
 
 public:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category="Default")
@@ -100,4 +100,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category="Default")
 	FVector2D ViewportSize;
 
+	UPROPERTY(EditAnywhere)
+	UMaterialInstance* SplitScreenMaterial;
 };
