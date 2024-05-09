@@ -74,6 +74,7 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 	{
 		PlayerLocations.Add(Player->GetActorLocation());
 	}
+	
 	FVector PlayerAverage = UKismetMathLibrary::GetVectorArrayAverage(PlayerLocations);
 	for(auto PlayerLocation : PlayerLocations)
 	{
@@ -97,12 +98,12 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 	
 	FVector2D Viewport;
 	GEngine->GameViewport->GetViewportSize(Viewport);
-	float ViewportHV = Viewport.Y / Viewport.X;
+	float ViewportHV = UKismetMathLibrary::Divide_DoubleDouble(Viewport.Y, Viewport.X);
 	float CameraFOVDivied = UKismetMathLibrary::Divide_DoubleDouble(GetCameraComponent()->FieldOfView, 2.0f);
 	float CameraFOVTAN = UKismetMathLibrary::Tan(CameraFOVDivied);
 	float TargetArmLength = Players[0]->CameraBoom->TargetArmLength;
-	float ViewportHorizontal = CameraFOVTAN * TargetArmLength;
-	float ViewportVertical = ViewportHV * ViewportHorizontal;
+	float ViewportHorizontal = UKismetMathLibrary::Multiply_DoubleDouble(CameraFOVTAN, TargetArmLength);
+	float ViewportVertical = UKismetMathLibrary::Multiply_DoubleDouble(ViewportHV, ViewportHorizontal);
 
 	float splitSIN = UKismetMathLibrary::DegSin(SplitAngle);
 	float splitSINABS = UKismetMathLibrary::Abs(splitSIN);
@@ -110,12 +111,13 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 	float splitCOS = UKismetMathLibrary::DegCos(SplitAngle);
 	float splitCOSABS = UKismetMathLibrary::Abs(splitCOS);
 
-	float splitHorizontal = ViewportHorizontal * splitCOSABS;
-	float splitVertical = ViewportVertical * splitSINABS;
+	float splitHorizontal = UKismetMathLibrary::Multiply_DoubleDouble(ViewportHorizontal, splitCOSABS);
+	float splitVertical = UKismetMathLibrary::Multiply_DoubleDouble(ViewportVertical, splitSINABS);
 
 	float hypotenuse = UKismetMathLibrary::Hypotenuse(splitHorizontal, splitVertical);
 
-	float splitStart = hypotenuse * MaxDistanceBetweenPlayers * 0.5f;
+	float hypotenuseMultiply = UKismetMathLibrary::Multiply_DoubleDouble(hypotenuse, MaxDistanceBetweenPlayers);
+	float splitStart = UKismetMathLibrary::Multiply_DoubleDouble(hypotenuseMultiply, 0.5f);
 
 	
 	FVector PlayerOneLocation = PlayerLocationProjected[0];
@@ -127,7 +129,7 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 	float MaxDistance = UKismetMathLibrary::Max(DistancePlayerOne, DistancePlayerTwo);
 	float SplitRatio = UKismetMathLibrary::Divide_DoubleDouble(MaxDistance, splitStart);
 	
-	float SplitRatioMinus = UKismetMathLibrary::FClamp(SplitRatio - 1.0f, 0.0f, 1.0f);
+	float SplitRatioMinus = UKismetMathLibrary::FClamp(UKismetMathLibrary::Subtract_DoubleDouble(SplitRatio), 0.0f, 1.0f);
 	PP_Material_Instance->SetScalarParameterValue("Line Thickness", SplitRatioMinus);
 
 	float ArmLengthAverage = UKismetMathLibrary::Subtract_DoubleDouble(ArmLengthMax, ArmLengthMin);
@@ -137,18 +139,16 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 	float ArmLengthInterp = UKismetMathLibrary::Add_DoubleDouble(ArmLengthMin, SplitRatioArmLength);
 	ArmLength = UKismetMathLibrary::FInterpTo(ArmLength, ArmLengthInterp, DeltaTime, ZoomSpeed);
 
-	UE_LOG(LogTemp, Warning, TEXT("Arm Length: %f"), ArmLength);
-
-	
-
 	FVector PlayerLocation = PlayerLocations[0];
 	FVector ProjectedLocation = PlayerLocationProjected[0];
 	FVector AverageLocationA = UKismetMathLibrary::Subtract_VectorVector(PlayerLocation, PlayerAverage);
 	FVector AverageLocationB = UKismetMathLibrary::Subtract_VectorVector(ProjectedLocation, PlayerAverage);
+	
 	FVector CapturePointA = UKismetMathLibrary::Normal(AverageLocationA);
 	FVector CapturePointB = UKismetMathLibrary::Normal(AverageLocationB);
+	
 	float Dot = UKismetMathLibrary::Dot_VectorVector(CapturePointA, CapturePointB);
-	float SpreadCameraAngleCorrection = UKismetMathLibrary::Divide_DoubleDouble(Dot);
+	float SpreadCameraAngleCorrection = UKismetMathLibrary::Divide_DoubleDouble(Dot, 1.0f);
 
 	for (int i = 0; i < Players.Num(); i++)
 	{
@@ -156,7 +156,9 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 		FVector CurrentPlayerLoc = PlayerLocations[i];
 		FVector CurrentPlayerAverage = UKismetMathLibrary::Subtract_VectorVector(PlayerAverage, CurrentPlayerLoc);
 		FVector NormalizedCurrentPlayerAverage = UKismetMathLibrary::Normal(CurrentPlayerAverage);
-		FVector Split = NormalizedCurrentPlayerAverage * (splitStart * SpreadCameraAngleCorrection);
+		float result = UKismetMathLibrary::Multiply_DoubleDouble(splitStart, SpreadCameraAngleCorrection);
+		FVector test(result);
+		FVector Split = UKismetMathLibrary::Multiply_VectorVector(NormalizedCurrentPlayerAverage, test);
 		FVector PlayerLocationPlusSplit = UKismetMathLibrary::Add_VectorVector(CurrentPlayerLoc, Split);
 		FVector PlayerCameraNewLocation = UKismetMathLibrary::SelectVector(PlayerAverage, PlayerLocationPlusSplit, UKismetMathLibrary::LessEqual_DoubleDouble(SplitRatio, 1.0f));
 
@@ -165,8 +167,6 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 
 		UpdatePlayerCapture(i, ArmLength, CameraRotation, PlayerCameraNewLocation, FinalAngle);
 	}
-	
-	
 }
 
 void ASplitScreenCamera::UpdateResolution()
@@ -189,7 +189,7 @@ void ASplitScreenCamera::UpdatePlayerCapture(int32 PlayerID, float _ArmLength, F
 	float Angle)
 {
 	ASplitScreenCPPCharacter* Player = Players[PlayerID];
-	Player->GetCameraBoom()->TargetArmLength = _ArmLength;
+	Player->GetCameraBoom()->TargetArmLength = ArmLength;
 	Player->GetCameraBoom()->SetWorldRotation(NewRotation);
 	Player->GetCameraBoom()->SetWorldLocation(NewLocation, false, nullptr, ETeleportType::None);
 	
