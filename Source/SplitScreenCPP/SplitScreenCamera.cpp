@@ -82,19 +82,19 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 		PlayerLocationProjected.Add(Point);
 	}
 	//Angle splitting
-	FVector FirstPlayerProjectedLocation = PlayerLocationProjected[0];
-	FVector Middle = UKismetMathLibrary::Subtract_VectorVector(FirstPlayerProjectedLocation, PlayerAverage);
+	
+	FVector Middle = UKismetMathLibrary::Subtract_VectorVector(PlayerLocationProjected[0], PlayerAverage);
 	FVector NormalizedVector = UKismetMathLibrary::Normal(Middle);
 	FVector CameraRightVector = GetCameraComponent()->GetRightVector();
 	float DotProduct = UKismetMathLibrary::Dot_VectorVector(NormalizedVector, CameraRightVector);
 	auto CrossProduct = UKismetMathLibrary::Cross_VectorVector(NormalizedVector, CameraRightVector);
 	float ACOSd = UKismetMathLibrary::DegAcos(DotProduct);
 	float cross = UKismetMathLibrary::SignOfFloat(CrossProduct.Z);
-	float Angle = ACOSd * cross;
+	float Angle = UKismetMathLibrary::Multiply_DoubleDouble(ACOSd, cross);
 	
 	UpdateSplitAngle(Angle, DeltaTime);
 
-	PP_Material_Instance->SetScalarParameterValue("Angle", Angle + 90);
+	PP_Material_Instance->SetScalarParameterValue("Angle", UKismetMathLibrary::Add_DoubleDouble(SplitAngle, 90));
 	
 	FVector2D Viewport;
 	GEngine->GameViewport->GetViewportSize(Viewport);
@@ -103,7 +103,7 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 	float CameraFOVTAN = UKismetMathLibrary::Tan(CameraFOVDivied);
 	float TargetArmLength = Players[0]->CameraBoom->TargetArmLength;
 	float ViewportHorizontal = UKismetMathLibrary::Multiply_DoubleDouble(CameraFOVTAN, TargetArmLength);
-	float ViewportVertical = UKismetMathLibrary::Multiply_DoubleDouble(ViewportHV, ViewportHorizontal);
+	float ViewportVertical = UKismetMathLibrary::Multiply_DoubleDouble(ViewportHorizontal, ViewportHV);
 
 	float splitSIN = UKismetMathLibrary::DegSin(SplitAngle);
 	float splitSINABS = UKismetMathLibrary::Abs(splitSIN);
@@ -112,12 +112,12 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 	float splitCOSABS = UKismetMathLibrary::Abs(splitCOS);
 
 	float splitHorizontal = UKismetMathLibrary::Multiply_DoubleDouble(ViewportHorizontal, splitCOSABS);
-	float splitVertical = UKismetMathLibrary::Multiply_DoubleDouble(ViewportVertical, splitSINABS);
+	float splitVertical = UKismetMathLibrary::Multiply_DoubleDouble(splitSINABS, ViewportVertical);
 
 	float hypotenuse = UKismetMathLibrary::Hypotenuse(splitHorizontal, splitVertical);
 
-	float hypotenuseMultiply = UKismetMathLibrary::Multiply_DoubleDouble(hypotenuse, MaxDistanceBetweenPlayers);
-	float splitStart = UKismetMathLibrary::Multiply_DoubleDouble(hypotenuseMultiply, 0.5f);
+	float hypotenuseMultiply = UKismetMathLibrary::Multiply_DoubleDouble(hypotenuse, MaxDistanceBetweenPlayers) * 0.5f;
+	float splitStart = hypotenuseMultiply;
 
 	
 	FVector PlayerOneLocation = PlayerLocationProjected[0];
@@ -138,17 +138,15 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 	float SplitRatioArmLength = UKismetMathLibrary::Multiply_DoubleDouble(ArmLengthAverage, ClampedSplitRatio);
 	float ArmLengthInterp = UKismetMathLibrary::Add_DoubleDouble(ArmLengthMin, SplitRatioArmLength);
 	ArmLength = UKismetMathLibrary::FInterpTo(ArmLength, ArmLengthInterp, DeltaTime, ZoomSpeed);
-
-	FVector PlayerLocation = PlayerLocations[0];
-	FVector ProjectedLocation = PlayerLocationProjected[0];
-	FVector AverageLocationA = UKismetMathLibrary::Subtract_VectorVector(PlayerLocation, PlayerAverage);
-	FVector AverageLocationB = UKismetMathLibrary::Subtract_VectorVector(ProjectedLocation, PlayerAverage);
+	
+	FVector AverageLocationA = UKismetMathLibrary::Subtract_VectorVector(PlayerLocations[0], PlayerAverage);
+	FVector AverageLocationB = UKismetMathLibrary::Subtract_VectorVector(PlayerLocationProjected[0], PlayerAverage);
 	
 	FVector CapturePointA = UKismetMathLibrary::Normal(AverageLocationA);
 	FVector CapturePointB = UKismetMathLibrary::Normal(AverageLocationB);
 	
 	float Dot = UKismetMathLibrary::Dot_VectorVector(CapturePointA, CapturePointB);
-	float SpreadCameraAngleCorrection = UKismetMathLibrary::Divide_DoubleDouble(Dot, 1.0f);
+	float SpreadCameraAngleCorrection = UKismetMathLibrary::Divide_DoubleDouble(1.0f, Dot);
 
 	for (int i = 0; i < Players.Num(); i++)
 	{
@@ -180,7 +178,7 @@ void ASplitScreenCamera::UpdateResolution()
 		PP_Material_Instance->SetVectorParameterValue("Resolution", LinearColor);
 		for (auto TextureTarget : TextureTargets)
 		{
-			UKismetRenderingLibrary::ResizeRenderTarget2D(TextureTarget, ViewportSize.X, ViewportSize.Y);
+			UKismetRenderingLibrary::ResizeRenderTarget2D(TextureTarget, UKismetMathLibrary::FTrunc(ViewportSize.X), UKismetMathLibrary::FTrunc(ViewportSize.Y));
 		}
 	}
 }
