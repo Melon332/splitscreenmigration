@@ -151,13 +151,12 @@ void ASplitScreenCamera::UpdateCamera(float DeltaTime)
 	for (int i = 0; i < Players.Num(); i++)
 	{
 		FRotator CameraRotation = GetCameraComponent()->GetComponentRotation();
-		FVector CurrentPlayerLoc = PlayerLocations[i];
-		FVector CurrentPlayerAverage = UKismetMathLibrary::Subtract_VectorVector(PlayerAverage, CurrentPlayerLoc);
+		FVector CurrentPlayerAverage = UKismetMathLibrary::Subtract_VectorVector(PlayerAverage, PlayerLocations[i]);
 		FVector NormalizedCurrentPlayerAverage = UKismetMathLibrary::Normal(CurrentPlayerAverage);
 		float result = UKismetMathLibrary::Multiply_DoubleDouble(splitStart, SpreadCameraAngleCorrection);
 		FVector test(result);
 		FVector Split = UKismetMathLibrary::Multiply_VectorVector(NormalizedCurrentPlayerAverage, test);
-		FVector PlayerLocationPlusSplit = UKismetMathLibrary::Add_VectorVector(CurrentPlayerLoc, Split);
+		FVector PlayerLocationPlusSplit = UKismetMathLibrary::Add_VectorVector(PlayerLocations[i], Split);
 		FVector PlayerCameraNewLocation = UKismetMathLibrary::SelectVector(PlayerAverage, PlayerLocationPlusSplit, UKismetMathLibrary::LessEqual_DoubleDouble(SplitRatio, 1.0f));
 
 		float NewAngle = UKismetMathLibrary::SelectFloat(180.0f, 0.0f, UKismetMathLibrary::Conv_IntToBool(i));
